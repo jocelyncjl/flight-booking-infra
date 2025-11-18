@@ -91,15 +91,20 @@ resource "aws_security_group" "db_sg" {
     }
 }
 
+
+# Create the random id for s3 bucket
 resource "random_id" "suffix" {
     byte_length = 4
 }
 
+
+# Create S3 bucket
 resource "aws_s3_bucket" "frontend" {
     bucket = "${var.project_name}-frontend-${random_id.suffix.hex}"
     tags = merge(local.common_tags, { Name = "${var.project_name}-frontend"})
 }
 
+# Create S3 bucket static site hosting 
 resource "aws_s3_bucket_website_configuration" "frontend_site" {
     bucket = aws_s3_bucket.frontend.id
     index_document {
@@ -111,6 +116,57 @@ resource "aws_s3_bucket_website_configuration" "frontend_site" {
 }
 
 # Create DB Subnet Group
+resource "aws_db_subnet_group" "db_subnets" {
+    name = "${var.project_name}-db-subnets"
+    subnet_ids = data.aws_subnets.default.ids
+    tags = local.common_tags
+}
+
+# Create RDS MySQL instance
+resource "aws_db_instance" "mysql" {
+    identifier = "${var.project_name}-mysql"
+    engine = "mysql"
+    engine_version = "8.0"
+    instance_class = "db.t3.micro"
+    allocated_storage = 20
+    username = var.db_username
+    password = var.db_password
+    db_name = var.db_name
+    db_subnet_group_name = aws_db_subnet_group.db_subnets.name
+    vpc_security_group_ids = [aws_security_group.db_sg.id]
+    publicly_accessible = false
+    skip_final_snapshot = true
+    deletion_protection = false
+    apply_immediately = true
+    tags = local.common_tags
+}
+
+# Query AWS ami resource
+data "aws_ami" "al2023" {
+    owners = ["137112412989"]
+    most_recent = true
+
+    filter {
+        name = "name"
+        values = ["al2023-ami-*-x86_64"]
+    }
+}
+
+# Create EC2 instance for Flask Backend
+resource "aws_instance" "web" {
+    ami = data.aws_ami.al2023.id
+    instance_type = var.instance_type
+    subnet_id = data.aws_subnets.default.ids[0]
+    vpc_security_group_ids = [aws_security_group.web_sg.id]
+    associate_public_ip_address = true
+
+    user_data = <<-EOF
+        echo "Flight Booking EC2 is up" > /var/log/user_data.log
+    EOF
+
+    tags = merge(local.common_tags, {Name = "${var.project_name}-web"})
+}
+
 
 
 

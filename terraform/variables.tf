@@ -39,5 +39,14 @@ variable "db_name" {
     default = "flightdb"
 }
 
+variable "db_password" {
+    description = "Database password for the RDS MySQL instance"
+    type = string
+}
+
+
+
+
+
 
 
