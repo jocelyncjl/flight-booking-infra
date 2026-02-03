@@ -1,3 +1,5 @@
+
+# Terraform settings: version and providers
 terraform {
     required_version = ">= 1.5.0"
     
@@ -21,7 +23,7 @@ locals {
     }
 }
 
-# Query Default VPC & Subnet
+# Query Default VPC & Subnet of AWS
 
 data "aws_vpc" "default" {
     default = true
@@ -33,6 +35,7 @@ data "aws_subnets" "default" {
         values = [data.aws_vpc.default.id]
     }
 }
+
 
 # Define Web Security Group web_sg
 resource "aws_security_group" "web_sg" {
@@ -83,6 +86,15 @@ resource "aws_security_group" "db_sg" {
         security_groups = [aws_security_group.web_sg.id]
     }
 
+    # Allow the local laptop IP connect with the RDS MySQL
+    ingress {
+        description = "MySQl from my laptop(dev only)"
+        from_port = 3306
+        to_port = 3306
+        protocol = "tcp"
+        cidr_blocks = [var.ssh_cidr]
+    }
+
     egress {
         from_port = 0
         to_port = 0
@@ -98,11 +110,18 @@ resource "random_id" "suffix" {
 }
 
 
-# Create S3 bucket
+# Create S3 bucket for static website
 resource "aws_s3_bucket" "frontend" {
     bucket = "${var.project_name}-frontend-${random_id.suffix.hex}"
     tags = merge(local.common_tags, { Name = "${var.project_name}-frontend"})
 }
+
+# Create S3 bucket for users avatar
+resource "aws_s3_bucket" "user_avatars" {
+    bucket = "${var.project_name}-user-avatar-${random_id.suffix.hex}"
+    tags = merge(local.common_tags, {Name = "${var.project_name}-user-avatar"})
+}
+
 
 # Create S3 bucket static site hosting 
 resource "aws_s3_bucket_website_configuration" "frontend_site" {
@@ -134,7 +153,7 @@ resource "aws_db_instance" "mysql" {
     db_name = var.db_name
     db_subnet_group_name = aws_db_subnet_group.db_subnets.name
     vpc_security_group_ids = [aws_security_group.db_sg.id]
-    publicly_accessible = false
+    publicly_accessible = true
     skip_final_snapshot = true
     deletion_protection = false
     apply_immediately = true
@@ -154,14 +173,25 @@ data "aws_ami" "al2023" {
 
 # Create EC2 instance for Flask Backend
 resource "aws_instance" "web" {
-    ami = data.aws_ami.al2023.id
+    ami = "ami-0f43441515b1d94b1"
     instance_type = var.instance_type
     subnet_id = data.aws_subnets.default.ids[0]
     vpc_security_group_ids = [aws_security_group.web_sg.id]
-    associate_public_ip_address = true
+    associate_public_ip_address = false
+
+    key_name = "flights-booking-ec2"
 
     user_data = <<-EOF
-        echo "Flight Booking EC2 is up" > /var/log/user_data.log
+        #!/bin/bash
+        set -e
+        yum update -y
+        amazon-linux-extras enable Docker
+        yum install -y docker git
+        systemctl enable --now docker
+        systemctl start docker 
+        useradd -m deploy || true
+        usermod -aG docker deploy
+        echo "deploy ALL=(ALL) NOPASSWORD: /user/bin/docker" >> /etc/sudoers.d/deploy
     EOF
 
     tags = merge(local.common_tags, {Name = "${var.project_name}-web"})

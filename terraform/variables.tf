@@ -1,6 +1,6 @@
 variable "aws_region" {
     type = string
-    default = "us-east-1"
+    default = "eu-west-1"
 }
 
 variable "project_name" {
@@ -9,19 +9,25 @@ variable "project_name" {
 }
 
 variable "instance_type" {
-    description = "EC2 instance type for the Flask backend"
+    description = "EC2 instance type for the Django backend"
     type = string
     default = "t3.micro"
 }
 
 variable "ssh_cidr" {
-    description = "EC2 instance type for the Flask backend"
+    description = "Public IP for the local laptop at home"
     type = string
     default = "0.0.0.0/0"
 }
 
-variable "flask_http_port" {
-    description = "Port on which the Flask Docker container will listen"
+variable "ssh_cidr_other" {
+    description = "Public IP for the local laptop at other places"
+    type = string
+    default = "0.0.0.0/0"
+}
+
+variable "django_http_port" {
+    description = "Port on which the Django Docker container will listen"
     type = number
     default = 80
 }
