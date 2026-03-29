@@ -69,19 +69,19 @@ terraform apply -var-file="envs/dev.tfvars"
 Input Variables
 Key variables used in this project:
 · aws_region
-    AWS region for deployment. Default: eu-west-1
+AWS region for deployment. Default: eu-west-1
 · project_name
-    Project name prefix used in resource naming
+Project name prefix used in resource naming
 · instance_type
-    EC2 instance type for the backend server
+EC2 instance type for the backend server
 · ssh_cidr
-    CIDR block allowed to access the EC2 instance and database
+CIDR block allowed to access the EC2 instance and database
 · db_username
-    Username for the MySQL database
+Username for the MySQL database
 · db_password
-    Password for the MySQL database
+Password for the MySQL database
 · db_name
-    Name of the MySQL database
+Name of the MySQL database
 
 Outputs
 After deployment, Terraform provides:
