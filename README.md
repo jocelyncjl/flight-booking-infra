@@ -28,7 +28,8 @@ The infrastructure currently includes:
     Control inbound and outbound traffic for the web and database tiers.
 
 ## Project Structure
-.
+```text
+flight-booking-infra
 ├── README.md
 └── terraform
     ├── backend.tf
@@ -37,6 +38,7 @@ The infrastructure currently includes:
     ├── variables.tf
     └── modules
         └── deploy.yaml
+```
 
 Prerequisites
 Before using this project, make sure you have:
